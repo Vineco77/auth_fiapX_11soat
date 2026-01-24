@@ -12,9 +12,13 @@ yarn-error.log*
 dist/
 build/
 
-# IDE
+# IDEs
 .vscode/
 .idea/
+*.swp
+*.swo
+*~
+.copilot-context-auth-fiapX.md
 
 # OS
 .DS_Store
