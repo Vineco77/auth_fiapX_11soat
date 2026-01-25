@@ -1,14 +1,14 @@
-import { 
-  Controller, 
-  Post, 
-  Body, 
-  HttpCode, 
-  HttpStatus, 
+import {
+  Controller,
+  Post,
+  Body,
+  HttpCode,
+  HttpStatus,
   Headers,
 } from '@nestjs/common';
-import { AuthService } from './auth.service';
-import { RegisterDto } from './dto/register.dto';
-import { LoginDto } from './dto/login.dto';
+import { AuthService } from '@/application/services/auth.service';
+import { RegisterDto } from '../dto/register.dto';
+import { LoginDto } from '../dto/login.dto';
 
 @Controller('auth')
 export class AuthController {
@@ -29,7 +29,7 @@ export class AuthController {
   @Post('validate')
   @HttpCode(HttpStatus.OK)
   async validateToken(@Headers('authorization') authHeader: string) {
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    if (!authHeader?.startsWith('Bearer ')) {
       return { valid: false, error: 'Token não fornecido' };
     }
 

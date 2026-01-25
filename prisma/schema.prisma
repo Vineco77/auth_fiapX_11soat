@@ -7,22 +7,26 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model User {
+model Client {
   id        String   @id @default(uuid())
   email     String   @unique
   password  String
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
   
   authLogs AuthLog[]
+  
+  @@map("clients")
 }
 
 model AuthLog {
   id        String   @id @default(uuid())
-  userId    String?
+  clientId  String?  @map("client_id")
   email     String
   action    String
   timestamp DateTime @default(now())
   
-  user      User?    @relation(fields: [userId], references: [id])
+  client    Client?  @relation(fields: [clientId], references: [id])
+  
+  @@map("auth_logs")
 }

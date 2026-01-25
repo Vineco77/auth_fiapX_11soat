@@ -1,6 +1,3 @@
-/**
- * Response DTO para validação de token
- */
 export class ValidateTokenResponseDto {
   valid: boolean;
   user?: {
