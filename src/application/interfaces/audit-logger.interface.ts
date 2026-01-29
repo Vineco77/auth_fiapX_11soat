@@ -3,7 +3,9 @@ export type AuditAction =
   | 'LOGIN_SUCCESS'
   | 'LOGIN_FAILED'
   | 'VALIDATE_TOKEN_SUCCESS'
-  | 'VALIDATE_TOKEN_FAILED';
+  | 'VALIDATE_TOKEN_FAILED'
+  | 'USER_DELETED'
+  | 'USER_REACTIVATED';
 
 export interface IAuditLogger {
   log(action: AuditAction, email: string, clientId?: string): Promise<void>;

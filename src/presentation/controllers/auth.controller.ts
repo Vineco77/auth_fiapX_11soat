@@ -1,14 +1,18 @@
 import {
   Controller,
   Post,
+  Delete,
   Body,
   HttpCode,
   HttpStatus,
   Headers,
+  UseGuards,
+  Request,
 } from '@nestjs/common';
 import { AuthService } from '@/application/services/auth.service';
 import { RegisterDto } from '../dto/register.dto';
 import { LoginDto } from '../dto/login.dto';
+import { JwtAuthGuard } from '../guards/jwt-auth.guard';
 
 @Controller('auth')
 export class AuthController {
@@ -35,5 +39,13 @@ export class AuthController {
 
     const token = authHeader.split(' ')[1];
     return this.authService.validateToken(token);
+  }
+
+  @Delete('user')
+  @UseGuards(JwtAuthGuard)
+  @HttpCode(HttpStatus.OK)
+  async deleteAccount(@Request() req) {
+    const clientId = req.user.clientId;
+    return this.authService.deleteAccount(clientId);
   }
 }

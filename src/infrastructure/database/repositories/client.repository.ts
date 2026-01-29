@@ -7,12 +7,20 @@ import { PrismaService } from '../prisma/prisma.service';
 export class ClientRepository implements IClientRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  async findByEmail(email: string): Promise<Client | null> {
+  async findByEmail(email: string, includeDeleted = false): Promise<Client | null> {
     const client = await this.prisma.client.findUnique({
       where: { email },
     });
 
-    return client ? Client.fromPrisma(client) : null;
+    if (!client) {
+      return null;
+    }
+
+    if (!includeDeleted && client.deletedAt) {
+      return null;
+    }
+
+    return Client.fromPrisma(client);
   }
 
   async findById(id: string): Promise<Client | null> {
@@ -20,7 +28,11 @@ export class ClientRepository implements IClientRepository {
       where: { id },
     });
 
-    return client ? Client.fromPrisma(client) : null;
+    if (!client || client.deletedAt) {
+      return null;
+    }
+
+    return Client.fromPrisma(client);
   }
 
   async create(email: string, hashedPassword: string): Promise<Client> {
@@ -28,6 +40,25 @@ export class ClientRepository implements IClientRepository {
       data: {
         email,
         password: hashedPassword,
+      },
+    });
+
+    return Client.fromPrisma(client);
+  }
+
+  async softDelete(id: string): Promise<void> {
+    await this.prisma.client.update({
+      where: { id },
+      data: { deletedAt: new Date() },
+    });
+  }
+
+  async reactivate(id: string, newPasswordHash: string): Promise<Client> {
+    const client = await this.prisma.client.update({
+      where: { id },
+      data: {
+        deletedAt: null,
+        password: newPasswordHash,
       },
     });
 

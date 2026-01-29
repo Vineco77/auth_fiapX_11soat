@@ -5,6 +5,7 @@ import { ITokenService } from '../interfaces/token-service.interface';
 import { IAuditLogger } from '../interfaces/audit-logger.interface';
 import { ClientAlreadyExistsException } from '@/domain/exceptions/client-already-exists.exception';
 import { InvalidCredentialsException } from '@/domain/exceptions/invalid-credentials.exception';
+import { ClientNotFoundException } from '@/domain/exceptions/client-not-found.exception';
 
 export interface RegisterInput {
   email: string;
@@ -47,9 +48,35 @@ export class AuthService {
   async register(input: RegisterInput): Promise<AuthResponse> {
     const { email, password } = input;
 
-    const existingClient = await this.clientRepository.findByEmail(email);
-    if (existingClient) {
+    const existingClient = await this.clientRepository.findByEmail(email, true);
+    
+    if (existingClient && !existingClient.isDeleted()) {
       throw new ClientAlreadyExistsException(email);
+    }
+    
+    if (existingClient && existingClient.isDeleted()) {
+      const hashedPassword = await this.hashService.hash(password);
+      const reactivatedClient = await this.clientRepository.reactivate(
+        existingClient.id,
+        hashedPassword,
+      );
+
+      const { token, expiresIn, exp } = await this.tokenService.generateToken({
+        clientId: reactivatedClient.id,
+        email: reactivatedClient.email,
+        authenticated: true,
+      });
+
+      await this.auditLogger.log('USER_REACTIVATED', email, reactivatedClient.id);
+      this.logger.log(`Cliente reativado: ${email}`);
+
+      return {
+        clientId: reactivatedClient.id,
+        email: reactivatedClient.email,
+        accessToken: token,
+        expiresIn,
+        exp,
+      };
     }
 
     const hashedPassword = await this.hashService.hash(password);
@@ -79,7 +106,7 @@ export class AuthService {
     const client = await this.clientRepository.findByEmail(email);
     if (!client) {
       await this.auditLogger.log('LOGIN_FAILED', email);
-      throw new InvalidCredentialsException();
+      throw new ClientNotFoundException();
     }
 
     const isPasswordValid = await this.hashService.compare(password, client.password);
@@ -136,5 +163,22 @@ export class AuthService {
         error: error.message || 'Token inválido',
       };
     }
+  }
+
+  async deleteAccount(clientId: string): Promise<{ success: boolean; message: string }> {
+    const client = await this.clientRepository.findById(clientId);
+    
+    if (!client) {
+      throw new ClientNotFoundException('Usuário não encontrado');
+    }
+
+    await this.clientRepository.softDelete(clientId);
+    await this.auditLogger.log('USER_DELETED', client.email, clientId);
+    this.logger.log(`Conta deletada: ${client.email}`);
+
+    return {
+      success: true,
+      message: 'Conta deletada com sucesso',
+    };
   }
 }

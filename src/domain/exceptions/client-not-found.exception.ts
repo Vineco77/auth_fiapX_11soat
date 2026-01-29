@@ -1,7 +1,7 @@
-import { UnauthorizedException } from '@nestjs/common';
+import { NotFoundException } from '@nestjs/common';
 
-export class ClientNotFoundException extends UnauthorizedException {
-  constructor() {
-    super('Cliente não encontrado');
+export class ClientNotFoundException extends NotFoundException {
+  constructor(message = 'Conta não encontrada. Faça o registro novamente.') {
+    super(message);
   }
 }

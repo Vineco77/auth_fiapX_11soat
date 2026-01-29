@@ -19,12 +19,15 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: JwtPayload) {
-    const client = await this.prisma.client.findUnique({
-      where: { id: payload.clientId },
+    const client = await this.prisma.client.findFirst({
+      where: { 
+        id: payload.clientId,
+        deletedAt: null,
+      },
     });
 
     if (!client) {
-      throw new UnauthorizedException('Cliente não encontrado');
+      throw new UnauthorizedException('Cliente não encontrado ou conta deletada');
     }
 
     return {
