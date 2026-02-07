@@ -1,4 +1,4 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { IClientRepository } from '../interfaces/client-repository.interface';
 import { IHashService } from '../interfaces/hash-service.interface';
 import { ITokenService } from '../interfaces/token-service.interface';
@@ -6,6 +6,7 @@ import { IAuditLogger } from '../interfaces/audit-logger.interface';
 import { ClientAlreadyExistsException } from '@/domain/exceptions/client-already-exists.exception';
 import { InvalidCredentialsException } from '@/domain/exceptions/invalid-credentials.exception';
 import { ClientNotFoundException } from '@/domain/exceptions/client-not-found.exception';
+import { PinoLoggerService } from '@/infrastructure/logging/pino-logger.service';
 
 export interface RegisterInput {
   email: string;
@@ -36,14 +37,15 @@ export interface ValidateTokenResponse {
 
 @Injectable()
 export class AuthService {
-  private readonly logger = new Logger(AuthService.name);
-
   constructor(
     private readonly clientRepository: IClientRepository,
     private readonly hashService: IHashService,
     private readonly tokenService: ITokenService,
     private readonly auditLogger: IAuditLogger,
-  ) {}
+    private readonly logger: PinoLoggerService,
+  ) {
+    this.logger.setContext('AuthService');
+  }
 
   async register(input: RegisterInput): Promise<AuthResponse> {
     const { email, password } = input;
@@ -68,7 +70,7 @@ export class AuthService {
       });
 
       await this.auditLogger.log('USER_REACTIVATED', email, reactivatedClient.id);
-      this.logger.log(`Cliente reativado: ${email}`);
+      this.logger.info(`Cliente reativado: ${email}`, { clientId: reactivatedClient.id });
 
       return {
         clientId: reactivatedClient.id,
@@ -89,7 +91,7 @@ export class AuthService {
     });
 
     await this.auditLogger.log('REGISTER', email, client.id);
-    this.logger.log(`Novo cliente registrado: ${email}`);
+    this.logger.info(`Novo cliente registrado: ${email}`, { clientId: client.id });
 
     return {
       clientId: client.id,
@@ -122,7 +124,7 @@ export class AuthService {
     });
 
     await this.auditLogger.log('LOGIN_SUCCESS', email, client.id);
-    this.logger.log(`Login bem-sucedido: ${email}`);
+    this.logger.info(`Login bem-sucedido: ${email}`, { clientId: client.id });
 
     return {
       clientId: client.id,
@@ -174,7 +176,7 @@ export class AuthService {
 
     await this.clientRepository.softDelete(clientId);
     await this.auditLogger.log('USER_DELETED', client.email, clientId);
-    this.logger.log(`Conta deletada: ${client.email}`);
+    this.logger.info(`Conta deletada: ${client.email}`, { clientId });
 
     return {
       success: true,

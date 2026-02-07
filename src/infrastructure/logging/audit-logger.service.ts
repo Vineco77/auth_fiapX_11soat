@@ -3,19 +3,15 @@ import {
   IAuditLogger,
   AuditAction,
 } from '@/application/interfaces/audit-logger.interface';
-import { PrismaService } from '../database/prisma/prisma.service';
+import { PinoLoggerService } from './pino-logger.service';
 
 @Injectable()
 export class AuditLoggerService implements IAuditLogger {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(private readonly logger: PinoLoggerService) {
+    this.logger.setContext('AuditLogger');
+  }
 
   async log(action: AuditAction, email: string, clientId?: string): Promise<void> {
-    await this.prisma.authLog.create({
-      data: {
-        email,
-        action,
-        clientId,
-      },
-    });
+    this.logger.audit(action, email, clientId);
   }
 }

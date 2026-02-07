@@ -5,12 +5,14 @@ import { LoggingMiddleware } from './common/middleware/logging.middleware';
 import { HealthController } from './presentation/controllers/health.controller';
 import { HealthService } from './application/services/health.service';
 import { PrismaModule } from './infrastructure/database/prisma/prisma.module';
+import { LoggerModule } from './infrastructure/logging/logger.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true,
     }),
+    LoggerModule,
     AuthModule,
     PrismaModule,
   ],

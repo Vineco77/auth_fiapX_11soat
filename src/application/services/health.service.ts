@@ -1,22 +1,33 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '@/infrastructure/database/prisma/prisma.service';
 import {
   HealthResponseDto,
   ServiceStatus,
 } from '@/presentation/dto/response/health-response.dto';
+import { PinoLoggerService } from '@/infrastructure/logging/pino-logger.service';
+import { testElasticsearchConnection } from '@/infrastructure/logging/pino.config';
 
 @Injectable()
 export class HealthService {
-  private readonly logger = new Logger(HealthService.name);
   private readonly POSTGRES_TIMEOUT = 2000; // 2 segundos
+  private readonly ELASTICSEARCH_TIMEOUT = 2000; // 2 segundos
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly logger: PinoLoggerService,
+  ) {
+    this.logger.setContext('HealthService');
+  }
 
   async execute(): Promise<HealthResponseDto> {
-    const postgresStatus = await this.checkPostgres();
+    const [postgresStatus, elasticsearchStatus] = await Promise.all([
+      this.checkPostgres(),
+      this.checkElasticsearch(),
+    ]);
 
     const services = {
       postgres: postgresStatus,
+      elasticsearch: elasticsearchStatus,
     };
 
     const status = this.determineOverallStatus(services);
@@ -39,14 +50,14 @@ export class HealthService {
       ]);
 
       const responseTime = Date.now() - start;
-      this.logger.log(`Postgres health check: OK (${responseTime}ms)`);
+      this.logger.info(`Postgres health check: OK (${responseTime}ms)`, { responseTime });
 
       return { status: 'ok', responseTime };
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : 'Unknown error';
 
-      this.logger.error(`Postgres health check failed: ${errorMessage}`);
+      this.logger.error(`Postgres health check failed: ${errorMessage}`, error instanceof Error ? error : undefined);
 
       return {
         status: 'error',
@@ -55,11 +66,38 @@ export class HealthService {
     }
   }
 
+  private async checkElasticsearch(): Promise<ServiceStatus> {
+    try {
+      const result = await Promise.race([
+        testElasticsearchConnection(),
+        this.timeout(this.ELASTICSEARCH_TIMEOUT),
+      ]);
+
+      this.logger.info(`Elasticsearch health check: ${result.status.toUpperCase()}`, {
+        responseTime: result.responseTime,
+      });
+
+      return result;
+    } catch (error) {
+      const errorMessage =
+        error instanceof Error ? error.message : 'Unknown error';
+
+      this.logger.error(
+        `Elasticsearch health check failed: ${errorMessage}`,
+        error instanceof Error ? error : undefined,
+      );
+
+      return {
+        status: 'error',
+        message: errorMessage,
+      };
+    }
+  }
+
   private determineOverallStatus(services: {
     postgres: ServiceStatus;
+    elasticsearch: ServiceStatus;
   }): 'healthy' | 'unhealthy' {
-    // Se Postgres está OK, sistema está healthy
-    // Se Postgres está com erro, sistema está unhealthy (sem degraded pois só temos 1 dependência crítica)
     return services.postgres.status === 'ok' ? 'healthy' : 'unhealthy';
   }
 

@@ -9,6 +9,7 @@ import { JwtTokenService } from '@/infrastructure/security/jwt-token.service';
 import { AuditLoggerService } from '@/infrastructure/logging/audit-logger.service';
 import { JwtStrategy } from '@/infrastructure/security/jwt.strategy';
 import { PrismaModule } from '@/infrastructure/database/prisma/prisma.module';
+import { PinoLoggerService } from '@/infrastructure/logging/pino-logger.service';
 
 export const CLIENT_REPOSITORY = 'IClientRepository';
 export const HASH_SERVICE = 'IHashService';
@@ -42,10 +43,10 @@ export const AUDIT_LOGGER = 'IAuditLogger';
     },
     {
       provide: AuthService,
-      useFactory: (clientRepo, hashService, tokenService, auditLogger) => {
-        return new AuthService(clientRepo, hashService, tokenService, auditLogger);
+      useFactory: (clientRepo, hashService, tokenService, auditLogger, logger) => {
+        return new AuthService(clientRepo, hashService, tokenService, auditLogger, logger);
       },
-      inject: [CLIENT_REPOSITORY, HASH_SERVICE, TOKEN_SERVICE, AUDIT_LOGGER],
+      inject: [CLIENT_REPOSITORY, HASH_SERVICE, TOKEN_SERVICE, AUDIT_LOGGER, PinoLoggerService],
     },
   ],
   exports: [AuthService],

@@ -2,6 +2,7 @@ export interface ServiceStatus {
   status: 'ok' | 'error';
   responseTime?: number;
   error?: string;
+  message?: string;
 }
 
 export interface HealthResponseDto {
@@ -9,6 +10,7 @@ export interface HealthResponseDto {
   timestamp: string;
   services: {
     postgres: ServiceStatus;
+    elasticsearch: ServiceStatus;
   };
   uptime: number;
 }

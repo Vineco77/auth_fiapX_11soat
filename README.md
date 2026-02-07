@@ -216,10 +216,147 @@ npm run prisma:migrate     # Executar migrations
 npm run prisma:studio      # Abrir Prisma Studio
 
 # Docker
-npm run docker:up          # Subir PostgreSQL
-npm run docker:down        # Parar PostgreSQL
+npm run docker:up          # Subir PostgreSQL + Elasticsearch + Kibana
+npm run docker:down        # Parar todos os containers
 npm run docker:logs        # Ver logs
+
+# Elasticsearch & Monitoramento
+npm run elasticsearch:setup  # Configurar ILM Policies (executar 1x)
 ```
+
+---
+
+## 📊 Monitoramento & Logs
+
+### Stack de Observabilidade
+
+O Auth Service utiliza **Pino + Elasticsearch + Kibana** para monitoramento e análise de logs:
+
+- **Pino:** Logger de alta performance (JSON estruturado)
+- **Elasticsearch:** Armazenamento e indexação de logs
+- **Kibana:** Visualização e análise de logs
+
+### Features
+
+✅ **TraceId UUID v4** em todas as requests (rastreabilidade end-to-end)  
+✅ **Logs estruturados JSON** (fácil pesquisa e análise)  
+✅ **ILM Policies** (retenção de 7 dias, rotação automática)  
+✅ **Níveis apropriados:** `info` (2xx/3xx), `warn` (4xx), `error` (5xx)  
+✅ **Auditoria completa:** Todas as ações logadas (REGISTER, LOGIN, VALIDATE, etc.)  
+✅ **Health Check:** Postgres + Elasticsearch
+
+### Setup Inicial
+
+1. **Subir stack completa (PostgreSQL + Elasticsearch + Kibana):**
+   ```bash
+   npm run docker:up
+   ```
+
+2. **Configurar Elasticsearch (ILM Policies):**
+   ```bash
+   npm run elasticsearch:setup
+   ```
+
+3. **Acessar Kibana:**
+   ```
+   http://localhost:5601
+   ```
+
+4. **Criar Index Pattern no Kibana:**
+   - Ir em **Management → Stack Management → Index Patterns**
+   - Criar pattern: `auth-service-logs-*`
+   - Time field: `@timestamp`
+
+### Visualizar Logs no Kibana
+
+1. **Discover:**
+   ```
+   http://localhost:5601/app/discover
+   ```
+
+2. **Filtros úteis:**
+   ```
+   # Logs de auditoria
+   category: "AUDIT"
+
+   # Logs de uma ação específica
+   action: "LOGIN_SUCCESS"
+
+   # Logs de um usuário
+   email: "usuario@exemplo.com"
+
+   # Logs de erros
+   level: "error"
+
+   # Rastrear request completo (traceId)
+   traceId: "550e8400-e29b-41d4-a716-446655440000"
+   ```
+
+3. **Campos disponíveis:**
+   - `@timestamp` - Data/hora do log
+   - `level` - Nível (info, warn, error)
+   - `message` - Mensagem do log
+   - `traceId` - UUID da request
+   - `context` - Origem (AuthService, HTTP, etc.)
+   - `action` - Ação de auditoria (REGISTER, LOGIN, etc.)
+   - `email` - Email do usuário
+   - `clientId` - ID do cliente
+   - `method` - Método HTTP
+   - `url` - URL da request
+   - `statusCode` - Status HTTP
+   - `responseTime` - Tempo de resposta (ms)
+
+### Health Check
+
+**Verificar saúde do serviço (incluindo Elasticsearch):**
+
+```bash
+curl http://localhost:3000/health/detailed
+```
+
+**Response:**
+```json
+{
+  "status": "healthy",
+  "timestamp": "2026-02-07T...",
+  "services": {
+    "postgres": {
+      "status": "ok",
+      "responseTime": 2
+    },
+    "elasticsearch": {
+      "status": "ok",
+      "responseTime": 5
+    }
+  },
+  "uptime": 163.29
+}
+```
+
+### Troubleshooting
+
+**Elasticsearch não conecta:**
+```bash
+# Verificar se Elasticsearch está rodando
+docker ps | grep elasticsearch
+
+# Ver logs do Elasticsearch
+docker logs auth_elasticsearch
+
+# Testar conexão manual
+curl http://localhost:9200/_cluster/health
+```
+
+**Logs não aparecem no Kibana:**
+1. Verificar se index pattern foi criado (`auth-service-logs-*`)
+2. Verificar se aplicação está enviando logs:
+   ```bash
+   curl http://localhost:9200/auth-service-logs-*/_search?size=1
+   ```
+3. Verificar ILM policy:
+   ```bash
+   curl http://localhost:9200/_ilm/policy/auth-service-ilm-policy
+   ```
 
 ---
 
