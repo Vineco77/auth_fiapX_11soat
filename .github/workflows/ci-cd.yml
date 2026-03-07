@@ -61,6 +61,8 @@ jobs:
 
       - name: Generate Prisma client
         run: npx prisma generate
+        env:
+          DATABASE_URL: postgresql://localhost:5432/dummy
 
       - name: Compile TypeScript
         run: npm run build
@@ -86,6 +88,8 @@ jobs:
 
       - name: Generate Prisma client
         run: npx prisma generate
+        env:
+          DATABASE_URL: postgresql://localhost:5432/dummy
 
       - name: Run tests
         run: npm test
