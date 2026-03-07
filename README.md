@@ -386,12 +386,6 @@ ISC
 
 ---
 
-## 👥 Autores
-
-- **Vinícius Ribeiro** - [@Vineco77](https://github.com/Vineco77)
-
----
-
 ## 🔗 Repositórios Relacionados
 
 - [API Service](https://github.com/Vineco77/api_fiapX_11soat)
