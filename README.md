@@ -1,4 +1,4 @@
-# 🔐 Auth Service - FIAP X 11SOAT
+# 🔐 Auth Service - FiapX11SOAT
 
 > Serviço de autenticação JWT com **Layered Architecture**
 
