@@ -398,5 +398,3 @@ ISC
 - [Worker Service](https://github.com/Luckmenez/worker_fiapX_11soat)
 
 ---
-
-**🚀 Auth Service - Pronto para produção!**
